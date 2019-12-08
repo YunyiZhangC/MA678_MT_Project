@@ -1,0 +1,157 @@
+---
+title: "MA678 Midterm Project -- "
+author: "Yunyi Zhang"
+date: "27/11/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tidyverse)
+library(lme4)
+library(tm)
+library(arm)
+library(jtools)
+library(broom)
+library(dotwhisker)
+```
+# 1: Introduction
+All datasets are downloaded from http://tomslee.net/airbnb-data-collection-get-the-data, datasets are seperated by month and location. Each dataset contains information such as room_id, room_type, city, neighborhood, accommodates, number of bedrooms. In this project I am going to first inspect each important variable, and then do the regression on different variables against the price.
+
+
+
+# 2: Load and merge the data
+After merging all datasets, there are in total 7112 rows with 19 columns
+```{r, include=FALSE}
+setwd("C:/Users/wuyf/Desktop/MSSP/678_mt_project/s3_files/cambridge_ma")
+
+CAMB_2017_4 <- read.csv("tomslee_airbnb_cambridge_ma_1101_2017-04-12.csv")
+CAMB_2017_5 <- read.csv("tomslee_airbnb_cambridge_ma_1260_2017-05-14.csv")
+CAMB_2017_6 <- read.csv("tomslee_airbnb_cambridge_ma_1385_2017-06-24.csv")
+CAMB_2017_7 <- read.csv("tomslee_airbnb_cambridge_ma_1502_2017-07-20.csv")
+CAMB_main <- rbind(CAMB_2017_4, CAMB_2017_5, CAMB_2017_6, CAMB_2017_7)
+```
+
+# 3. Quick summary of my dataset
+These quick summary shows that there are 13 different neighborhoods, 3 different room types, 15 different accommodates and 6 number of bedroom. I also included a detailed summary below.
+```{r}
+length(unique(CAMB_2017_7$neighborhood))
+length(unique(CAMB_2017_7$room_type))
+length(unique(CAMB_2017_7$accommodates))
+length(unique(CAMB_2017_7$bedrooms))
+summary(CAMB_main)
+```
+
+# 4. Boxplots for different variables vs rating
+## 4.1 Room Type and Price
+```{r, echo = FALSE, warning = FALSE}
+ggplot(CAMB_main, aes(x=reorder(room_type, price),y = price,group = room_type)) +
+  geom_boxplot(fill = "gray") +
+  ylim(0,600) +
+  labs(title="Airbnb price for each room type ", x="room type") +
+  coord_flip()
+
+rt = aggregate(CAMB_main[,c('price')], list(CAMB_main$room_type), FUN = mean)
+kable(rt, booktabs=TRUE, digits = 2, col.names = c("room type", "average price"), align = "c")
+```
+
+## 4.2 Neighorhood and Price
+```{r, echo = FALSE, warning = FALSE}
+ggplot(CAMB_main, aes(x=reorder(neighborhood, price, mean),y = price,group = neighborhood)) +
+  geom_boxplot(fill = "gray") +
+  ylim(0,600) +
+  labs(title="Airbnb price in each neighborhood ", x="neighborhood") +
+  coord_flip()
+
+rt = aggregate(CAMB_main[,c('price')], list(CAMB_main$neighborhood), FUN = mean)
+kable(rt, booktabs=TRUE, digits = 2, col.names = c("Neighborhood", "average price"), align = "c")
+
+```
+
+## 4.3 Accommodate and Price
+```{r, echo = FALSE, warning = FALSE}
+ggplot(CAMB_main, aes(x=reorder(accommodates, price),y = price,group = accommodates)) +
+  geom_boxplot(fill = "gray") +
+  ylim(0,600) +
+  labs(title="Airbnb price for each accommodates ", x="accommodates") +
+  coord_flip()
+
+rt = aggregate(CAMB_main[,c('price')], list(CAMB_main$accommodates), FUN = mean)
+kable(rt, booktabs=TRUE, digits = 2, col.names = c("Accommodates", "average price"), align = "c")
+
+```
+
+## 4.4 Bedrooms and Price
+```{r, echo = FALSE, warning = FALSE}
+ggplot(CAMB_main, aes(x=reorder(bedrooms, price),y = price,group = bedrooms)) +
+  geom_boxplot(fill = "gray") +
+  ylim(0,600) +
+  labs(title="Airbnb price for each accommodates ", x="accommodates") +
+  coord_flip()
+
+rt = aggregate(CAMB_main[,c('price')], list(CAMB_main$bedrooms), FUN = mean)
+kable(rt, booktabs=TRUE, digits = 2, col.names = c("Bedrooms", "average price"), align = "c")
+```
+
+# 5 Multilevel Model analysis
+## 5.1 Regress price on Neighborhood and Bedrooms, no between group
+```{r, echo = FALSE, warning = FALSE}
+mulre1 <- lmer(formula = price ~ neighborhood + bedrooms + (1 | room_type) + (1 | accommodates), data = CAMB_main, REML = FALSE)
+display(mulre1)
+```
+
+## 5.2 Regress price on Neighborhood, Bedrooms, Room Types, with one between-group of bedrooms and accommodates.
+```{r, echo = FALSE, warning = FALSE}
+mulre2 <- lmer(formula = price ~ neighborhood + bedrooms + room_type + (1 + bedrooms | accommodates) , data = CAMB_main, REML = FALSE)
+display(mulre2)
+```
+## 6. Interpretation
+For Model 2, if I would like to rent an airbnb MIT, I would expect the price to be 136.22 + 27.99 +  59.35*Bedrooms - 61.54*Private room - 77.15*shared room
+
+By increasing one bedroom, I would expect to price to rise by 59.35, if it is a private room, the price would drop by 61.54, and if it is a shared room, the price would drop by 77.15. It makes sense because the shared room is normally cheaper than a private one.
+
+## 6. Model check
+```{r, waring = FALSE}
+binnedplot(fitted(mulre1), resid(mulre1), cex.main=1.2, model_name = "Model 1", main="residual plot", nclass = 50)
+
+binnedplot(fitted(mulre2), resid(mulre2), cex.main=1.2, main="residual plot", nclass = 50)
+
+dwplot(list(mulre1, mulre2), dodge_size = 0.4, show_intercept = FALSE)
+
+```
+From the plots we can see that the second regression model have a better and more reliable result. 
+
+## 7. ANOVA
+```{R}
+anova(mulre1, mulre2)
+```
+Model two has a DF of 3 and a smaller p-value which lead to the conclusion that Model 2 has a better fit.
+
+## 8. Discussion
+#8.1
+From futher research on google map, airbnb near Harvard and MIT tend to have a higher price comparing to other areas in Cambridge, which makes sense considering that those areas are more popular for visiters
+
+#8.2
+The result of the fit shows some residuals outside the model which indicate some limitation of the model
+
+#8.3
+My initial thought is to analyze the relationship between neighborhood and the rating, however, as I looked into the dataset and tried to do some plot, I found out that the rating is not sufficient enough for me to keep my work (see the graph below), also the result does not make any sense.
+```{r, echo = FALSE}
+ggplot(CAMB_main, aes(x=reorder(neighborhood, overall_satisfaction, mean),y = overall_satisfaction,group = neighborhood)) +
+  geom_boxplot(fill = "gray") +
+  ylim(0,5) +
+  labs(title="Airbnb price in each neighborhood ", x="neighborhood") +
+  coord_flip()
+```
+
+
+## 9. Future Direction
+I am still very interested in the relationship between rating and other factors. I would like to find some more reliable dataset if possible, and keep up the work.
+
+
+
+
