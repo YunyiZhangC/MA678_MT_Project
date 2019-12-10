@@ -38,12 +38,12 @@ CAMB_main <- rbind(CAMB_2017_4, CAMB_2017_5, CAMB_2017_6, CAMB_2017_7)
 
 # 3. Quick summary of my dataset
 These quick summary shows that there are 13 different neighborhoods, 3 different room types, 15 different accommodates and 6 number of bedroom. I also included a detailed summary below.
-```{r}
+```{r, echo = FALSE}
 length(unique(CAMB_2017_7$neighborhood))
 length(unique(CAMB_2017_7$room_type))
 length(unique(CAMB_2017_7$accommodates))
 length(unique(CAMB_2017_7$bedrooms))
-summary(CAMB_main)
+
 ```
 
 # 4. Boxplots for different variables vs rating
@@ -109,13 +109,17 @@ display(mulre1)
 mulre2 <- lmer(formula = price ~ neighborhood + bedrooms + room_type + (1 + bedrooms | accommodates) , data = CAMB_main, REML = FALSE)
 display(mulre2)
 ```
+
+
+
+
 ## 6. Interpretation
 For Model 2, if I would like to rent an airbnb MIT, I would expect the price to be 136.22 + 27.99 +  59.35*Bedrooms - 61.54*Private room - 77.15*shared room
 
 By increasing one bedroom, I would expect to price to rise by 59.35, if it is a private room, the price would drop by 61.54, and if it is a shared room, the price would drop by 77.15. It makes sense because the shared room is normally cheaper than a private one.
 
-## 6. Model check
-```{r, waring = FALSE}
+## 7. Model check
+```{r, warning = FALSE, echo = FALSE}
 binnedplot(fitted(mulre1), resid(mulre1), cex.main=1.2, model_name = "Model 1", main="residual plot", nclass = 50)
 
 binnedplot(fitted(mulre2), resid(mulre2), cex.main=1.2, main="residual plot", nclass = 50)
@@ -125,22 +129,22 @@ dwplot(list(mulre1, mulre2), dodge_size = 0.4, show_intercept = FALSE)
 ```
 From the plots we can see that the second regression model have a better and more reliable result. 
 
-## 7. ANOVA
+## 8. ANOVA
 ```{R}
 anova(mulre1, mulre2)
 ```
 Model two has a DF of 3 and a smaller p-value which lead to the conclusion that Model 2 has a better fit.
 
-## 8. Discussion
-#8.1
+## 9. Discussion
+#9.1
 From futher research on google map, airbnb near Harvard and MIT tend to have a higher price comparing to other areas in Cambridge, which makes sense considering that those areas are more popular for visiters
 
-#8.2
+#9.2
 The result of the fit shows some residuals outside the model which indicate some limitation of the model
 
-#8.3
+#9.3
 My initial thought is to analyze the relationship between neighborhood and the rating, however, as I looked into the dataset and tried to do some plot, I found out that the rating is not sufficient enough for me to keep my work (see the graph below), also the result does not make any sense.
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning = FALSE}
 ggplot(CAMB_main, aes(x=reorder(neighborhood, overall_satisfaction, mean),y = overall_satisfaction,group = neighborhood)) +
   geom_boxplot(fill = "gray") +
   ylim(0,5) +
@@ -149,7 +153,7 @@ ggplot(CAMB_main, aes(x=reorder(neighborhood, overall_satisfaction, mean),y = ov
 ```
 
 
-## 9. Future Direction
+## 10. Future Direction
 I am still very interested in the relationship between rating and other factors. I would like to find some more reliable dataset if possible, and keep up the work.
 
 
